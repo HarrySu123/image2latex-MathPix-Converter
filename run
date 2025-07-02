@@ -1,0 +1,122 @@
+#!/bin/bash
+
+# MathPix LaTeX Extractor - Setup and Run Script
+# This script automatically sets up the environment and runs the application
+
+set -e  # Exit on any error
+
+echo "🚀 MathPix LaTeX Extractor Setup & Run Script"
+echo "=============================================="
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+echo "📁 Working directory: $SCRIPT_DIR"
+
+# Check if Python 3 is available
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Error: Python 3 is not installed or not in PATH"
+    echo "   Please install Python 3 and try again"
+    exit 1
+fi
+
+echo "✅ Python 3 found: $(python3 --version)"
+
+# Create virtual environment if it doesn't exist
+if [ ! -d ".venv" ]; then
+    echo "📦 Creating virtual environment..."
+    python3 -m venv .venv
+    echo "✅ Virtual environment created"
+else
+    echo "✅ Virtual environment already exists"
+fi
+
+# Activate virtual environment
+echo "🔧 Activating virtual environment..."
+source .venv/bin/activate
+
+# Upgrade pip
+echo "📈 Upgrading pip..."
+pip install --upgrade pip
+
+# Install dependencies
+echo "📚 Installing dependencies..."
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt
+else
+    echo "📝 Installing core dependencies..."
+    pip install flask requests python-dotenv
+fi
+
+echo "✅ Dependencies installed"
+
+# Check if .env file exists
+if [ ! -f ".env" ]; then
+    echo "⚠️  Warning: .env file not found!"
+    echo "   Creating .env from template..."
+    
+    if [ -f ".env.example" ]; then
+        cp .env.example .env
+        echo "📝 Created .env file from template"
+        echo "⚠️  IMPORTANT: Please edit .env and add your MathPix API credentials:"
+        echo "   - MATHPIX_APP_ID=your_app_id_here"
+        echo "   - MATHPIX_APP_KEY=your_app_key_here"
+        echo ""
+        echo "Press Enter to continue after editing .env, or Ctrl+C to exit..."
+        read -r
+    else
+        echo "❌ Error: No .env.example file found"
+        echo "   Please create a .env file with your MathPix API credentials"
+        exit 1
+    fi
+else
+    echo "✅ .env file found"
+fi
+
+# Verify environment variables
+echo "🔍 Checking environment variables..."
+python3 -c "
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+app_id = os.getenv('MATHPIX_APP_ID')
+app_key = os.getenv('MATHPIX_APP_KEY')
+
+if not app_id or not app_key:
+    print('❌ Error: Missing API credentials in .env file')
+    print('   Please check your MATHPIX_APP_ID and MATHPIX_APP_KEY')
+    exit(1)
+
+print(f'✅ API credentials found (ID: {app_id[:10]}...)')
+"
+
+if [ $? -ne 0 ]; then
+    echo "❌ Environment variable check failed"
+    exit 1
+fi
+
+# Check if app.py exists
+if [ ! -f "app.py" ]; then
+    echo "❌ Error: app.py not found"
+    echo "   Make sure you're running this script from the project directory"
+    exit 1
+fi
+
+echo "✅ Application file found"
+
+# Set permissions for security
+if [ -f ".env" ]; then
+    chmod 600 .env
+    echo "🔒 Secured .env file permissions"
+fi
+
+echo ""
+echo "🎉 Setup complete! Starting the application..."
+echo "📱 The app will be available at: http://127.0.0.1:5000"
+echo "🛑 Press Ctrl+C to stop the server"
+echo ""
+
+# Run the application
+python3 app.py

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MathPix LaTeX Extractor</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .upload-area { border: 2px dashed #007bff; padding: 30px; text-align: center; margin: 20px 0; border-radius: 8px; background: #f8f9fa; transition: all 0.3s ease; cursor: pointer; }
+        .upload-area:hover { background: #e3f2fd; border-color: #0056b3; }
+        .upload-area.dragover { background: #d1ecf1; border-color: #17a2b8; border-style: solid; transform: scale(1.02); }
+        .upload-icon { font-size: 48px; margin-bottom: 15px; color: #007bff; }
+        .upload-text { font-size: 18px; margin: 15px 0; color: #333; }
+        .upload-subtext { color: #666; margin: 10px 0; }
+        .file-input-wrapper { position: relative; display: inline-block; margin: 15px 0; }
+        .file-input { opacity: 0; position: absolute; width: 100%; height: 100%; cursor: pointer; }
+        .file-input-label { display: inline-block; padding: 10px 20px; background: #6c757d; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
+        .file-input-label:hover { background: #5a6268; }
+        .result { margin: 20px 0; }
+        .latex-result { background: #e8f5e8; border: 2px solid #28a745; padding: 20px; border-radius: 8px; margin: 15px 0; }
+        .text-result { background: #fff3cd; border: 2px solid #ffc107; padding: 20px; border-radius: 8px; margin: 15px 0; }
+        .error-result { background: #f8d7da; border: 2px solid #dc3545; padding: 20px; border-radius: 8px; margin: 15px 0; }
+        .debug-result { background: #e2e3e5; border: 2px solid #6c757d; padding: 20px; border-radius: 8px; margin: 15px 0; }
+        .latex-content { background: white; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; white-space: pre-wrap; word-break: break-all; position: relative; }
+        .copy-button { 
+            background: #28a745; 
+            color: white; 
+            border: none; 
+            padding: 8px 15px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 14px;
+            margin: 10px 5px 0 0;
+            transition: background 0.3s;
+        }
+        .copy-button:hover { background: #218838; }
+        .copy-button:active { background: #1e7e34; }
+        .copy-success { background: #17a2b8 !important; }
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .upload-button { background: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: all 0.3s; }
+        .upload-button:hover:not(:disabled) { background: #0056b3; transform: translateY(-1px); }
+        .upload-button:disabled { background: #6c757d; cursor: not-allowed; opacity: 0.6; }
+        .file-input { margin: 15px 0; }
+        h1 { color: #333; text-align: center; margin-bottom: 30px; }
+        .icon { font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📐 MathPix LaTeX Extractor</h1>
+        <div class="upload-area" id="upload-area" onclick="document.getElementById('image').click()">
+            <form method="post" enctype="multipart/form-data" id="upload-form">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drag & Drop your image here</div>
+                <div class="upload-subtext">or click to browse</div>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="image" name="image" accept="image/*" required class="file-input">
+                    <label for="image" class="file-input-label">� Choose File</label>
+                </div>
+                
+                <div id="file-info" style="display: none; margin: 15px 0; padding: 10px; background: #e8f5e8; border-radius: 5px;">
+                    <span id="file-name"></span>
+                    <button type="button" onclick="clearFile()" style="margin-left: 10px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✕ Remove</button>
+                </div>
+                
+                <button type="submit" class="upload-button" id="upload-btn" disabled>🚀 Upload and Convert</button>
+            </form>
+            <p><small>📋 Supported formats: PNG, JPG, JPEG, GIF, BMP (Max: 10MB)</small></p>
+        </div>
+        
+        {% if latex %}
+            <div class="result">
+                <div class="latex-result">
+                    <div class="section-title">
+                        <span class="icon">✅</span>
+                        <span>LaTeX Successfully Extracted!</span>
+                    </div>
+                    <div class="latex-content" id="latex-content">{{ latex }}</div>
+                    <button class="copy-button" onclick="copyLatex()">📋 Copy LaTeX</button>
+                    <button class="copy-button" onclick="copyLatexFormatted()">📋 Copy with $$ Tags</button>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% if text %}
+            <div class="result">
+                <div class="text-result">
+                    <div class="section-title">
+                        <span class="icon">📝</span>
+                        <span>Text Content Found</span>
+                    </div>
+                    <div class="latex-content">{{ text }}</div>
+                    <button class="copy-button" onclick="copyText()">📋 Copy Text</button>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% if error %}
+            <div class="result">
+                <div class="error-result">
+                    <div class="section-title">
+                        <span class="icon">❌</span>
+                        <span>Error Occurred</span>
+                    </div>
+                    <div class="latex-content">{{ error }}</div>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% if full_response %}
+            <div class="result">
+                <div class="debug-result">
+                    <div class="section-title">
+                        <span class="icon">🔍</span>
+                        <span>Debug Information</span>
+                    </div>
+                    <div class="latex-content">{{ full_response }}</div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Drag and Drop functionality
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('image');
+        const uploadForm = document.getElementById('upload-form');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        // Handle dropped files
+        uploadArea.addEventListener('drop', handleDrop, false);
+
+        // Handle file input change
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                updateFileInfo(e.target.files[0]);
+            }
+        });
+
+        // Handle form submission
+        uploadForm.addEventListener('submit', function(e) {
+            if (!fileInput.files.length) {
+                e.preventDefault();
+                alert('Please select a file first!');
+                return;
+            }
+
+            // Show loading state
+            uploadBtn.textContent = '⏳ Processing...';
+            uploadBtn.disabled = true;
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight() {
+            uploadArea.classList.add('dragover');
+        }
+
+        function unhighlight() {
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+
+            if (files.length > 0) {
+                const file = files[0];
+                
+                // Check if it's an image file
+                if (!file.type.startsWith('image/')) {
+                    alert('Please upload an image file (PNG, JPG, JPEG, GIF, BMP)');
+                    return;
+                }
+
+                // Check file size (10MB limit)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('File size must be less than 10MB');
+                    return;
+                }
+
+                // Update file input
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+
+                updateFileInfo(file);
+            }
+        }
+
+        function updateFileInfo(file) {
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            fileName.textContent = `📄 ${file.name} (${fileSize} MB)`;
+            fileInfo.style.display = 'block';
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '🚀 Upload and Convert';
+
+            // Update upload area appearance
+            uploadArea.style.borderColor = '#28a745';
+            uploadArea.style.backgroundColor = '#d4edda';
+            document.querySelector('.upload-text').textContent = 'File ready to upload!';
+            document.querySelector('.upload-subtext').textContent = 'Click upload button or drop another file to replace';
+        }
+
+        function clearFile() {
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '🚀 Upload and Convert';
+
+            // Reset upload area appearance
+            uploadArea.style.borderColor = '#007bff';
+            uploadArea.style.backgroundColor = '#f8f9fa';
+            document.querySelector('.upload-text').textContent = 'Drag & Drop your image here';
+            document.querySelector('.upload-subtext').textContent = 'or click to browse';
+        }
+
+        // Copy functionality (existing code)
+        function copyLatex() {
+            const latexContent = document.getElementById('latex-content').textContent;
+            copyToClipboard(latexContent, 'LaTeX copied to clipboard!');
+        }
+        
+        function copyLatexFormatted() {
+            const latexContent = document.getElementById('latex-content').textContent;
+            const formatted = `$$${latexContent}$$`;
+            copyToClipboard(formatted, 'LaTeX with $$ tags copied to clipboard!');
+        }
+        
+        function copyText() {
+            const textElement = document.querySelector('.text-result .latex-content');
+            if (textElement) {
+                const textContent = textElement.textContent;
+                copyToClipboard(textContent, 'Text copied to clipboard!');
+            }
+        }
+        
+        function copyToClipboard(text, successMessage) {
+            if (navigator.clipboard && window.isSecureContext) {
+                // Use the modern clipboard API
+                navigator.clipboard.writeText(text).then(() => {
+                    showCopySuccess(successMessage);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    fallbackCopy(text, successMessage);
+                });
+            } else {
+                // Fallback for older browsers
+                fallbackCopy(text, successMessage);
+            }
+        }
+        
+        function fallbackCopy(text, successMessage) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showCopySuccess(successMessage);
+            } catch (err) {
+                console.error('Fallback copy failed: ', err);
+                alert('Copy failed. Please select and copy manually.');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        function showCopySuccess(message) {
+            // Find the button that was clicked and temporarily change its appearance
+            const buttons = document.querySelectorAll('.copy-button');
+            buttons.forEach(button => {
+                if (button === event.target) {
+                    const originalText = button.textContent;
+                    const originalClass = button.className;
+                    
+                    button.textContent = '✅ Copied!';
+                    button.classList.add('copy-success');
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.className = originalClass;
+                    }, 2000);
+                }
+            });
+            
+            // Also show a console message
+            console.log(message);
+        }
+    </script>
+</body>
+</html>

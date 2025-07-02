@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Stop the MathPix LaTeX Extractor application
+
+echo "🛑 Stopping MathPix LaTeX Extractor..."
+
+# Find and kill the Flask app process
+if pgrep -f "python.*app.py" > /dev/null; then
+    pkill -f "python.*app.py"
+    echo "✅ Application stopped successfully"
+else
+    echo "ℹ️  No running application found"
+fi
