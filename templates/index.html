@@ -1,7 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MathPix LaTeX Extractor</title>
+    <title>MathPix                    <form method="post" enctype="multipart/form-data" id="upload-form">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drag & Drop your image here</div>
+                <div class="upload-subtext">or click anywhere in this area to browse</div>
+                
+                <input type="file" id="image" name="image" accept="image/*" required style="display: none;">ss="upload-area" id="upload-area">
+            <form method="post" enctype="multipart/form-data" id="upload-form">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drag & Drop your image here</div>
+                <div class="upload-subtext">or click to browse</div>
+                
+                <input type="file" id="image" name="image" accept="image/*" required style="display: none;">actor</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
         .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -47,7 +58,7 @@
 <body>
     <div class="container">
         <h1>📐 MathPix LaTeX Extractor</h1>
-        <div class="upload-area" id="upload-area" onclick="document.getElementById('image').click()">
+        <div class="upload-area" id="upload-area">
             <form method="post" enctype="multipart/form-data" id="upload-form">
                 <div class="upload-icon">📁</div>
                 <div class="upload-text">Drag & Drop your image here</div>
@@ -129,6 +140,16 @@
         const fileInfo = document.getElementById('file-info');
         const fileName = document.getElementById('file-name');
 
+        // Single click handler for upload area
+        uploadArea.addEventListener('click', function(e) {
+            // Prevent triggering on buttons or form elements
+            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInput.click();
+            }
+        });
+
         // Prevent default drag behaviors
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             uploadArea.addEventListener(eventName, preventDefaults, false);
@@ -147,11 +168,19 @@
         // Handle dropped files
         uploadArea.addEventListener('drop', handleDrop, false);
 
-        // Handle file input change
+        // Handle file input change - prevent multiple triggers
+        let fileChangeInProgress = false;
         fileInput.addEventListener('change', function(e) {
+            if (fileChangeInProgress) return;
+            fileChangeInProgress = true;
+            
             if (e.target.files.length > 0) {
                 updateFileInfo(e.target.files[0]);
             }
+            
+            setTimeout(() => {
+                fileChangeInProgress = false;
+            }, 100);
         });
 
         // Handle form submission
@@ -162,9 +191,10 @@
                 return;
             }
 
-            // Show loading state
+            // Show loading state and disable interactions
             uploadBtn.textContent = '⏳ Processing...';
             uploadBtn.disabled = true;
+            uploadArea.style.pointerEvents = 'none';
         });
 
         function preventDefaults(e) {
@@ -172,11 +202,11 @@
             e.stopPropagation();
         }
 
-        function highlight() {
+        function highlight(e) {
             uploadArea.classList.add('dragover');
         }
 
-        function unhighlight() {
+        function unhighlight(e) {
             uploadArea.classList.remove('dragover');
         }
 
@@ -189,7 +219,7 @@
                 
                 // Check if it's an image file
                 if (!file.type.startsWith('image/')) {
-                    alert('Please upload an image file (PNG, JPG, JPEG, GIF, BMP)');
+                    alert('Please upload an image file (PNG, JPG, JPEG, GIF, BMP, WebP)');
                     return;
                 }
 
@@ -231,11 +261,21 @@
             // Reset upload area appearance
             uploadArea.style.borderColor = '#007bff';
             uploadArea.style.backgroundColor = '#f8f9fa';
+            uploadArea.style.pointerEvents = 'auto';
             document.querySelector('.upload-text').textContent = 'Drag & Drop your image here';
-            document.querySelector('.upload-subtext').textContent = 'or click to browse';
+            document.querySelector('.upload-subtext').textContent = 'or click anywhere in this area to browse';
         }
 
-        // Copy functionality (existing code)
+        // Reset form state after page load
+        window.addEventListener('load', function() {
+            uploadArea.style.pointerEvents = 'auto';
+            if (uploadBtn) {
+                uploadBtn.disabled = !fileInput.files.length;
+                uploadBtn.textContent = '🚀 Upload and Convert';
+            }
+        });
+
+        // Copy functionality
         function copyLatex() {
             const latexContent = document.getElementById('latex-content').textContent;
             copyToClipboard(latexContent, 'LaTeX copied to clipboard!');
@@ -257,7 +297,6 @@
         
         function copyToClipboard(text, successMessage) {
             if (navigator.clipboard && window.isSecureContext) {
-                // Use the modern clipboard API
                 navigator.clipboard.writeText(text).then(() => {
                     showCopySuccess(successMessage);
                 }).catch(err => {
@@ -265,7 +304,6 @@
                     fallbackCopy(text, successMessage);
                 });
             } else {
-                // Fallback for older browsers
                 fallbackCopy(text, successMessage);
             }
         }
@@ -292,7 +330,6 @@
         }
         
         function showCopySuccess(message) {
-            // Find the button that was clicked and temporarily change its appearance
             const buttons = document.querySelectorAll('.copy-button');
             buttons.forEach(button => {
                 if (button === event.target) {
@@ -308,8 +345,6 @@
                     }, 2000);
                 }
             });
-            
-            // Also show a console message
             console.log(message);
         }
     </script>
