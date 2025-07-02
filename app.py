@@ -50,21 +50,16 @@ def index():
             
             image_data = base64.b64encode(file.read()).decode()
             
-            # Debug: Print API credentials (first few chars only)
-            print(f"API ID: {MATHPIX_APP_ID[:10]}...")
-            print(f"API Key: {MATHPIX_APP_KEY[:10]}...")
-            
             response = requests.post(MATHPIX_API_URL, headers=HEADERS, json={
                 "src": f"data:{mime_type};base64,{image_data}",
                 "formats": ["latex_simplified"]
             })
             
-            # Debug: Print response details
+            # Debug: Print response details (no sensitive data)
             print(f"Response Status: {response.status_code}")
-            print(f"Response Headers: {response.headers}")
-            print(f"Response Content: {response.text}")
             
             if response.status_code != 200:
+                print(f"API Error Response: {response.text}")
                 return render_template("index.html", error=f"API Error: {response.status_code} - {response.text}")
             
             result = response.json()
