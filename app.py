@@ -66,6 +66,11 @@ def index():
             latex = result.get("latex_simplified", "")
             text_found = result.get("text", "")
             error_msg = result.get("error", "")
+
+            # if latex:
+            #     latex = "$" + latex[2:-2] + "$"
+            if text_found:
+                text_found = "$" + text_found[2:-2] + "$"
             
             # Determine the type of response
             response_data = {

@@ -1,18 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>MathPix                    <form method="post" enctype="multipart/form-data" id="upload-form">
-                <div class="upload-icon">📁</div>
-                <div class="upload-text">Drag & Drop your image here</div>
-                <div class="upload-subtext">or click anywhere in this area to browse</div>
-                
-                <input type="file" id="image" name="image" accept="image/*" required style="display: none;">ss="upload-area" id="upload-area">
-            <form method="post" enctype="multipart/form-data" id="upload-form">
-                <div class="upload-icon">📁</div>
-                <div class="upload-text">Drag & Drop your image here</div>
-                <div class="upload-subtext">or click to browse</div>
-                
-                <input type="file" id="image" name="image" accept="image/*" required style="display: none;">actor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathPix Equation Extractor</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
         .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -45,7 +36,12 @@
         }
         .copy-button:hover { background: #218838; }
         .copy-button:active { background: #1e7e34; }
-        .copy-success { background: #17a2b8 !important; }
+        .copy-success { 
+            background: #17a2b8 !important; 
+            color: white !important;
+            transform: scale(1.05);
+            transition: all 0.3s ease;
+        }
         .section-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
         .upload-button { background: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: all 0.3s; }
         .upload-button:hover:not(:disabled) { background: #0056b3; transform: translateY(-1px); }
@@ -66,7 +62,7 @@
                 
                 <div class="file-input-wrapper">
                     <input type="file" id="image" name="image" accept="image/*" required class="file-input">
-                    <label for="image" class="file-input-label">� Choose File</label>
+                    <label for="image" class="file-input-label">📂 Choose File</label>
                 </div>
                 
                 <div id="file-info" style="display: none; margin: 15px 0; padding: 10px; background: #e8f5e8; border-radius: 5px;">
@@ -87,8 +83,8 @@
                         <span>LaTeX Successfully Extracted!</span>
                     </div>
                     <div class="latex-content" id="latex-content">{{ latex }}</div>
-                    <button class="copy-button" onclick="copyLatex()">📋 Copy LaTeX</button>
-                    <button class="copy-button" onclick="copyLatexFormatted()">📋 Copy with $$ Tags</button>
+                    <button class="copy-button" onclick="copyLatex(this)">📋 Copy LaTeX</button>
+                    <button class="copy-button" onclick="copyLatexFormatted(this)">📋 Copy with $$ Tags</button>
                 </div>
             </div>
         {% endif %}
@@ -100,8 +96,8 @@
                         <span class="icon">📝</span>
                         <span>Text Content Found</span>
                     </div>
-                    <div class="latex-content">{{ text }}</div>
-                    <button class="copy-button" onclick="copyText()">📋 Copy Text</button>
+                    <div class="latex-content" id="text-content">{{ text }}</div>
+                    <button class="copy-button" onclick="copyText(this)">📋 Copy Text</button>
                 </div>
             </div>
         {% endif %}
@@ -276,39 +272,47 @@
         });
 
         // Copy functionality
-        function copyLatex() {
-            const latexContent = document.getElementById('latex-content').textContent;
-            copyToClipboard(latexContent, 'LaTeX copied to clipboard!');
-        }
-        
-        function copyLatexFormatted() {
-            const latexContent = document.getElementById('latex-content').textContent;
-            const formatted = `$$${latexContent}$$`;
-            copyToClipboard(formatted, 'LaTeX with $$ tags copied to clipboard!');
-        }
-        
-        function copyText() {
-            const textElement = document.querySelector('.text-result .latex-content');
-            if (textElement) {
-                const textContent = textElement.textContent;
-                copyToClipboard(textContent, 'Text copied to clipboard!');
+        function copyLatex(buttonElement) {
+            const latexContent = document.getElementById('latex-content');
+            if (latexContent) {
+                copyToClipboard(latexContent.textContent, 'LaTeX copied to clipboard!', buttonElement);
             }
         }
         
-        function copyToClipboard(text, successMessage) {
+        function copyLatexFormatted(buttonElement) {
+            const latexContent = document.getElementById('latex-content');
+            if (latexContent) {
+                const formatted = `$$${latexContent.textContent}$$`;
+                copyToClipboard(formatted, 'LaTeX with $$ tags copied to clipboard!', buttonElement);
+            }
+        }
+        
+        function copyText(buttonElement) {
+            const textElement = document.getElementById('text-content');
+            if (textElement) {
+                copyToClipboard(textElement.textContent, 'Text copied to clipboard!', buttonElement);
+            }
+        }
+        
+        function copyToClipboard(text, successMessage, buttonElement) {
+            if (!text) {
+                alert('No content to copy!');
+                return;
+            }
+            
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
-                    showCopySuccess(successMessage);
+                    showCopySuccess(successMessage, buttonElement);
                 }).catch(err => {
                     console.error('Failed to copy: ', err);
-                    fallbackCopy(text, successMessage);
+                    fallbackCopy(text, successMessage, buttonElement);
                 });
             } else {
-                fallbackCopy(text, successMessage);
+                fallbackCopy(text, successMessage, buttonElement);
             }
         }
         
-        function fallbackCopy(text, successMessage) {
+        function fallbackCopy(text, successMessage, buttonElement) {
             const textArea = document.createElement('textarea');
             textArea.value = text;
             textArea.style.position = 'fixed';
@@ -320,7 +324,7 @@
             
             try {
                 document.execCommand('copy');
-                showCopySuccess(successMessage);
+                showCopySuccess(successMessage, buttonElement);
             } catch (err) {
                 console.error('Fallback copy failed: ', err);
                 alert('Copy failed. Please select and copy manually.');
@@ -329,22 +333,19 @@
             document.body.removeChild(textArea);
         }
         
-        function showCopySuccess(message) {
-            const buttons = document.querySelectorAll('.copy-button');
-            buttons.forEach(button => {
-                if (button === event.target) {
-                    const originalText = button.textContent;
-                    const originalClass = button.className;
-                    
-                    button.textContent = '✅ Copied!';
-                    button.classList.add('copy-success');
-                    
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                        button.className = originalClass;
-                    }, 2000);
-                }
-            });
+        function showCopySuccess(message, buttonElement) {
+            if (buttonElement) {
+                const originalText = buttonElement.textContent;
+                const originalClass = buttonElement.className;
+                
+                buttonElement.textContent = '✅ Copied!';
+                buttonElement.classList.add('copy-success');
+                
+                setTimeout(() => {
+                    buttonElement.textContent = originalText;
+                    buttonElement.className = originalClass;
+                }, 2000);
+            }
             console.log(message);
         }
     </script>
